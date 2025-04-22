@@ -56,6 +56,11 @@
 			path = Sources;
 			sourceTree = "<group>";
 		};
+		6E9A64AD2DB7B96C00C971F7 /* .github */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = .github;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,6 +85,7 @@
 		6E60C2F12DA6461B00571381 = {
 			isa = PBXGroup;
 			children = (
+				6E9A64AD2DB7B96C00C971F7 /* .github */,
 				6E60C3742DA6945400571381 /* Sources */,
 				6E60C2FD2DA6461B00571381 /* iOS-native-embed-sdk */,
 				6E60C3092DA6461B00571381 /* iOS-native-embed-sdkTests */,
@@ -126,6 +132,7 @@
 			fileSystemSynchronizedGroups = (
 				6E60C2FD2DA6461B00571381 /* iOS-native-embed-sdk */,
 				6E60C3742DA6945400571381 /* Sources */,
+				6E9A64AD2DB7B96C00C971F7 /* .github */,
 			);
 			name = "iOS-native-embed-sdk";
 			packageProductDependencies = (
