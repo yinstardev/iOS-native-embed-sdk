@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		6E60C3062DA6461B00571381 /* iOS_native_embed_sdk.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6E60C2FB2DA6461B00571381 /* iOS_native_embed_sdk.framework */; };
-		6E60C3672DA6909400571381 /* Package.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E60C3662DA6908F00571381 /* Package.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,7 +23,6 @@
 /* Begin PBXFileReference section */
 		6E60C2FB2DA6461B00571381 /* iOS_native_embed_sdk.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = iOS_native_embed_sdk.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		6E60C3052DA6461B00571381 /* iOS-native-embed-sdkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "iOS-native-embed-sdkTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		6E60C3662DA6908F00571381 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -90,7 +88,6 @@
 				6E60C2FD2DA6461B00571381 /* iOS-native-embed-sdk */,
 				6E60C3092DA6461B00571381 /* iOS-native-embed-sdkTests */,
 				6E60C2FC2DA6461B00571381 /* Products */,
-				6E60C3662DA6908F00571381 /* Package.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -224,7 +221,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6E60C3672DA6909400571381 /* Package.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

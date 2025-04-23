@@ -1,6 +1,3 @@
-// BaseEmbedController.swift
-// Sends both embedConfig and viewConfig on INIT_VERCEL_SHELL
-
 import Foundation
 import WebKit
 import SwiftUI
@@ -32,10 +29,7 @@ public struct EmbedConfigForEncoding: Encodable {
     public let getTokenFromSDK: Bool?
 }
 
-public protocol ViewConfig: Encodable {    
-}
-
-/// Base controller that handles sending both configs on shell init
+public protocol ViewConfig: Encodable {}
 public class BaseEmbedController: NSObject,
     WKScriptMessageHandler,
     ObservableObject,
@@ -46,6 +40,7 @@ public class BaseEmbedController: NSObject,
     public var embedConfig: EmbedConfig
     public let viewConfig: ViewConfig
     public let embedType: String
+    internal var onMessageSend: (([String: Any]) -> Void)? = nil
 
     private var cancellables = Set<AnyCancellable>()
     private let shellURL = URL(string: "https://mobile-embed-shell.vercel.app")!
@@ -173,6 +168,7 @@ public class BaseEmbedController: NSObject,
     }
 
     private func sendJsonMessageToShell(message: [String:Any]) {
+        onMessageSend?(message)
         do {
             let data = try JSONSerialization.data(withJSONObject: message)
             if let json = String(data: data, encoding: .utf8) {
