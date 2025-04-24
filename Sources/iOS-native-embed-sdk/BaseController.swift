@@ -116,7 +116,7 @@ public class BaseEmbedController: NSObject,
     }
 
     // once the INIT_VERCEL_SHELL is received.
-    private func handleInitVercelShell() {
+    public func handleInitVercelShell() {
         isShellInitialized = true
         sendEmbedConfigToShell()
         sendViewConfigToShell()

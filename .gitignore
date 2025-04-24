@@ -8,16 +8,20 @@
 *.xccheckout
 *.xcodeproj/project.xcworkspace
 *.xcodeproj/xcuserdata
+*.xcodeproj/xcshareddata/xcschemes/*.xcscheme
+*.xcodeproj/xcshareddata/xcschemes/xcschememanagement.plist
+*.xcdebugger/
 
 # SwiftPM
 .build/
-.swiftpm/xcode/package.xcworkspace
+.swiftpm/
+Package.resolved
 
-# CocoaPods (if used)
+# CocoaPods
 Pods/
 Podfile.lock
 
-# Carthage (if used)
+# Carthage
 Carthage/
 
 # Fastlane
@@ -25,14 +29,14 @@ fastlane/report.xml
 fastlane/screenshots
 fastlane/test_output
 
-# Archive & Derived Data
+# Archives & Derived Data
 *.ipa
 *.dSYM.zip
 *.dSYM
 *.xcarchive
 DerivedData/
 
-# Other
+# IDEs & Misc
 *.swp
 *.lock
 .idea/

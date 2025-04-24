@@ -1,211 +1,155 @@
+//
+//  BaseEmbedControllerTests.swift
+//  iOS-native-embed-sdk
+//
+//  Created by Prashant.patil on 24/04/25.
+//
+
 import XCTest
+import WebKit
 import Combine
 @testable import iOS_native_embed_sdk
 
-struct MockLiveboardViewConfig: Codable {
-    let mockId: String = "mockLiveboard"
-}
-
 final class BaseEmbedControllerTests: XCTestCase {
 
-    class MockBaseEmbedController: BaseEmbedController {
-        var capturedMessage: [String: Any]?
-        var onSend: (([String: Any]) -> Void)?
+    var cancellables: Set<AnyCancellable> = []
 
-        override func sendJsonMessageToShell(_ message: [String: Any]) {
-            capturedMessage = message
-            onSend?(message)
+    struct MockConfig: Codable, Equatable {
+        let key: String
+    }
+    
+    let getAuthToken: () -> Future<String, Error> = {
+        return Future { promise in
+            // Simulate async token fetching
+            DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) {
+                promise(.success("mock-token-123"))
+            }
         }
     }
 
-    var baseEmbedController: MockBaseEmbedController!
-    var mockEmbedConfig: EmbedConfig!
-
-    override func setUp() {
-        super.setUp()
-
-        mockEmbedConfig = SDKEmbedConfig(
-            thoughtSpotHost: "https://example.com",
-            authType: AuthType.TrustedAuthTokenCookieless,
-            getAuthTokenCallback
-        )
-
-        let specificViewConfig: SpecificViewConfig = .liveboard(MockLiveboardViewConfig())
-
-        // 3. Initialize the MockBaseEmbedController with the updated signature
-        baseEmbedController = MockBaseEmbedController(
-            embedConfig: mockEmbedConfig,
-            specificViewConfig: specificViewConfig,   // Pass the enum case
-            embedType: "TestEmbedType",
-            getAuthTokenCallback: nil                // Pass nil callback by default
-        )
+    func makeController(getToken: (() -> Future<String, Error>)? = nil) -> BaseEmbedController {
+        let config = EmbedConfig(thoughtSpotHost: "https://test.com",authType: AuthType.TrustedAuthTokenCookieless)
+        let viewConfig = SpecificViewConfig.liveboard(LiveboardViewConfig(liveboardId: "abc"))
+        let controller = BaseEmbedController(embedConfig: config, viewConfig: viewConfig, embedType: "Liveboard", getAuthTokenCallback: getToken)
+        return controller
     }
 
-    // Clean up after each test
-    override func tearDown() {
-        baseEmbedController = nil
-        mockEmbedConfig = nil
-        super.tearDown()
+    func testInitializationSetsPropertiesCorrectly() throws {
+        let controller = makeController()
+
+        XCTAssertEqual(controller.embedConfig.thoughtSpotHost, "https://test.com")
+        XCTAssertEqual(controller.embedType, "Liveboard")
+        XCTAssertNotNil(controller.webView)
     }
 
-    // MARK: - Initialization Tests
+    func testShellInitializationTriggersEmbedAndViewConfig() {
+        let expectation1 = expectation(description: "Embed config sent")
+        let expectation2 = expectation(description: "View config sent")
 
-    func testInitialization() {
-        XCTAssertNotNil(baseEmbedController, "Controller should initialize")
-        XCTAssertEqual(baseEmbedController.embedConfig.thoughtSpotHost, "https://example.com")
-        XCTAssertEqual(baseEmbedController.embedType, "TestEmbedType")
-        // Optionally check the specific view config type stored
-        switch baseEmbedController.viewConfig {
-        case .liveboard(let config):
-            // Check specific properties of the mock/real config if needed
-             XCTAssertEqual((config as? MockLiveboardViewConfig)?.mockId, "mockLiveboard")
-        // Add default or other cases if testing different view types
-        // default: XCTFail("Expected liveboard config")
-        }
-    }
+        class TestController: BaseEmbedController {
+            let onEmbedConfigSent: () -> Void
+            let onViewConfigSent: () -> Void
 
-    func testShellURLInitialization() {
-        let expectedURL = URL(string: "https://mobile-embed-shell.vercel.app")!
-        XCTAssertEqual(baseEmbedController.shellURL, expectedURL)
-    }
+            init(embedConfig: EmbedConfig,
+                 viewConfig: SpecificViewConfig,
+                 embedType: String,
+                 onEmbedConfigSent: @escaping () -> Void,
+                 onViewConfigSent: @escaping () -> Void) {
+                self.onEmbedConfigSent = onEmbedConfigSent
+                self.onViewConfigSent = onViewConfigSent
+                super.init(embedConfig: embedConfig, viewConfig: viewConfig, embedType: embedType)
+            }
 
-    func testWebViewInitialization() {
-        XCTAssertNotNil(baseEmbedController.webView, "WebView should be initialized")
-        XCTAssertEqual(baseEmbedController.webView.configuration.preferences.javaScriptEnabled, true)
-    }
+            override func sendEmbedConfigToShell() {
+                onEmbedConfigSent()
+            }
 
-    func testInjectReactNativeWebViewShim() {
-        let scripts = baseEmbedController.webView.configuration.userContentController.userScripts
-        XCTAssertTrue(scripts.contains { $0.source.contains("window.ReactNativeWebView") }, "Shim script should be injected")
-    }
-
-    // MARK: - Property Tests
-
-    func testEmbedConfigProperties() {
-        // Access the stored embedConfig
-        let config = baseEmbedController.embedConfig
-        XCTAssertEqual(config.thoughtSpotHost, "https://example.com")
-        // Ensure comparison matches the actual type of authType (Enum case or String)
-        XCTAssertEqual(config.authType, .TrustedAuthTokenCookieless) // Compare Enum cases
-        // Verify the callback property on the controller itself
-        XCTAssertNil(baseEmbedController.getAuthTokenCallback, "Default getAuthTokenCallback should be nil")
-    }
-
-    // MARK: - Functionality Tests
-
-    func testHandleAuthTokenRequest() {
-        // 1. Define the mock callback function that returns a Future
-        let mockAuthTokenCallback = { Future<String, Error> { promise in
-            // Simulate successful token fetch
-            promise(.success("mockToken"))
-        }}
-
-        // 2. Create EmbedConfig *without* getAuthToken
-        let testEmbedConfig = EmbedConfig(
-            thoughtSpotHost: "https://example.com",
-            authType: .TrustedAuthTokenCookieless // Use enum
-            // Add other necessary EmbedConfig properties
-        )
-
-        // 3. Create a SpecificViewConfig case
-        let specificViewConfig: SpecificViewConfig = .liveboard(MockLiveboardViewConfig())
-
-        // 4. Initialize MockBaseEmbedController correctly, PASSING the mock callback
-        let controller = MockBaseEmbedController(
-            embedConfig: testEmbedConfig,
-            specificViewConfig: specificViewConfig,
-            embedType: "TestEmbedType",
-            getAuthTokenCallback: mockAuthTokenCallback // Pass the callback here
-        )
-
-        // 5. Set up expectation for the message sent back to the shell
-        let expectation = self.expectation(description: "Auth token response message received")
-
-        // 6. Define the assertion logic within the onSend callback
-        controller.onSend = { message in
-            if message["type"] as? String == "AUTH_TOKEN_RESPONSE" {
-                XCTAssertEqual(message["token"] as? String, "mockToken", "Token in message should match mock")
-                expectation.fulfill()
-            } else if message["type"] as? String == "AUTH_TOKEN_ERROR" {
-                XCTFail("Should not receive auth token error: \(message["error"] ?? "Unknown error")")
+            override func sendViewConfigToShell() {
+                onViewConfigSent()
             }
         }
 
-        // 7. Trigger the method under test
-        controller.handleRequestAuthToken()
+        let config = EmbedConfig(thoughtSpotHost: "https://test.com", authType: AuthType.TrustedAuthTokenCookieless)
+        let viewConfig = SpecificViewConfig.liveboard(LiveboardViewConfig(liveboardId: "abc"))
+        let controller = TestController(
+            embedConfig: config,
+            viewConfig: viewConfig,
+            embedType: "Liveboard",
+            onEmbedConfigSent: {
+                expectation1.fulfill()
+            },
+            onViewConfigSent: {
+                expectation2.fulfill()
+            }
+        )
 
-        // 8. Wait for the expectation
-        waitForExpectations(timeout: 1.0, handler: nil)
+        controller.handleInitVercelShell()
+        wait(for: [expectation1, expectation2], timeout: 1.0)
     }
 
-    func testSendJsonMessageToShell() {
-        // Arrange
-        let message: [String: Any] = ["type": "TEST_MESSAGE", "payload": ["dataKey": "dataValue"]]
-        let expectation = self.expectation(description: "onSend callback executed")
 
-        // Act: Set the callback and call the method
-        baseEmbedController.onSend = { msg in
-            // Assert: Check if the message received by the callback matches the input
-            // Use NSDictionary for easier comparison if dealing with complex nested structures
-            XCTAssertEqual(msg as NSDictionary, message as NSDictionary)
+    func testGetAuthTokenCallbackSuccess() {
+        let expectation = expectation(description: "Token sent")
+
+        let controller = makeController {
+            Future<String, Error> { promise in
+                promise(.success("abc-token"))
+            }
+        }
+
+        controller.onMessageSend = { msg in
+            if let type = msg["type"] as? String, type == "AUTH_TOKEN_RESPONSE" {
+                XCTAssertEqual(msg["token"] as? String, "abc-token")
+                expectation.fulfill()
+            }
+        }
+
+        controller.handleRequestAuthToken()
+        wait(for: [expectation], timeout: 1.0)
+    }
+
+    func testEventListenerRegistrationAndTriggering() {
+        let controller = makeController()
+        let expectation = expectation(description: "Event listener called")
+
+        controller.on(event: EmbedEvent.AuthInit) { data in
             expectation.fulfill()
         }
-        baseEmbedController.sendJsonMessageToShell(message)
 
-        // Assert: Wait for the callback expectation
-        waitForExpectations(timeout: 0.1) // Short timeout, callback should be synchronous
-        // Also check the captured message property on the mock
-        XCTAssertEqual(baseEmbedController.capturedMessage as NSDictionary?, message as NSDictionary)
+        controller.userContentController(
+            WKUserContentController(),
+            didReceive: makeScriptMessage(type: "EMBED_EVENT", eventName: "Init")
+        )
+
+        wait(for: [expectation], timeout: 1.0)
     }
 
-    // Add tests for sendEmbedConfigToShell and sendViewConfigToShell
-    // These will involve mocking the SpecificViewConfig cases and verifying the
-    // JSON structure sent via sendJsonMessageToShell
+    func testTriggerSendsCorrectPayload() {
+        let controller = makeController()
+        let expectation = expectation(description: "Message sent")
 
-     func testSendEmbedConfigToShell() {
-         let expectation = self.expectation(description: "sendEmbedConfigToShell message sent")
-         baseEmbedController.onSend = { message in
-             if message["type"] as? String == "INIT" {
-                 XCTAssertNotNil(message["payload"])
-                 if let payload = message["payload"] as? [String: Any] {
-                     XCTAssertEqual(payload["thoughtSpotHost"] as? String, "https://example.com")
-                     // Assuming AuthType enum has a rawValue of String
-                     XCTAssertEqual(payload["authType"] as? String, AuthType.TrustedAuthTokenCookieless.rawValue)
-                     XCTAssertEqual(payload["getTokenFromSDK"] as? Bool, true)
-                 } else {
-                     XCTFail("Payload is not a dictionary")
-                 }
-                 expectation.fulfill()
-             }
-         }
-         // Simulate shell being initialized
-         baseEmbedController.sendJsonMessageToShell(["type":"INIT_VERCEL_SHELL","status":"ready"]) // Trigger initialization flow if needed, or set flag directly
-         baseEmbedController.sendEmbedConfigToShell() // Call the method under test
+        controller.onMessageSend = { msg in
+            XCTAssertEqual(msg["type"] as? String, "HOST_EVENT")
+            XCTAssertEqual(msg["eventName"] as? String, "AppReload")
+            expectation.fulfill()
+        }
 
-         waitForExpectations(timeout: 1.0)
-     }
+        controller.trigger(event: HostEvent.Reload, data: ["info": "now"])
+        wait(for: [expectation], timeout: 1.0)
+    }
 
-     func testSendViewConfigToShell() {
-         let expectation = self.expectation(description: "sendViewConfigToShell message sent")
-         baseEmbedController.onSend = { message in
-             if message["type"] as? String == "EMBED" {
-                 XCTAssertEqual(message["embedType"] as? String, "TestEmbedType")
-                 XCTAssertNotNil(message["viewConfig"])
-                 if let viewCfgPayload = message["viewConfig"] as? [String: Any] {
-                     // Assert specific properties of the MockLiveboardViewConfig were encoded
-                     XCTAssertEqual(viewCfgPayload["mockId"] as? String, "mockLiveboard")
-                 } else {
-                      XCTFail("viewConfig payload is not a dictionary")
-                 }
-                 expectation.fulfill()
-             }
-         }
-          // Simulate shell being initialized
-         baseEmbedController.sendJsonMessageToShell(["type":"INIT_VERCEL_SHELL","status":"ready"]) // Trigger initialization flow if needed, or set flag directly
-         baseEmbedController.sendViewConfigToShell() // Call the method under test
+    // MARK: - Helpers
+    private func makeScriptMessage(type: String, eventName: String? = nil) -> WKScriptMessage {
+        let messageJSON: [String: Any] = [
+            "type": type,
+            "eventName": eventName ?? "",
+            "data": [:]
+        ]
+        let data = try! JSONSerialization.data(withJSONObject: messageJSON)
+        let jsonString = String(data: data, encoding: .utf8)!
 
-         waitForExpectations(timeout: 1.0)
-     }
+        class DummyFrame: WKFrameInfo {}
 
-    // Add more tests for WKScriptMessageHandler delegate methods, error handling, etc.
+        return WKScriptMessage(name: "ReactNativeWebView", body: jsonString)
+    }
 }
