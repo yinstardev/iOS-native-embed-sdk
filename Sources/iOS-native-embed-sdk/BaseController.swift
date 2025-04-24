@@ -2,25 +2,34 @@ import Foundation
 import WebKit
 import SwiftUI
 import Combine
+//
+//public enum AuthType: String {
+//    case TrustedAuthTokenCookieless = "AuthServerCookieless"
+//}
+//
+//public struct EmbedConfig {
+//    public let thoughtSpotHost: String
+//    public let authType: String
+//    public let getAuthToken: (() -> Future<String, Error>)?
+//    
+//    public init(
+//        thoughtSpotHost: String,
+//        authType: String,
+//        getAuthToken: (() -> Future<String, Error>)?
+//    ) {
+//        self.thoughtSpotHost = thoughtSpotHost
+//        self.authType = authType
+//        self.getAuthToken = getAuthToken
+//    }
+//}
 
-public enum AuthType: String {
-    case TrustedAuthTokenCookieless = "AuthServerCookieless"
-}
+public enum SpecificViewConfig: Codable {
+    case liveboard(LiveboardViewConfig)
 
-public struct EmbedConfig {
-    public let thoughtSpotHost: String
-    public let authType: String
-    public let getAuthToken: (() -> Future<String, Error>)?
-    
-    public init(
-        thoughtSpotHost: String,
-        authType: String,
-        getAuthToken: (() -> Future<String, Error>)?
-    ) {
-        self.thoughtSpotHost = thoughtSpotHost
-        self.authType = authType
-        self.getAuthToken = getAuthToken
-    }
+    // cases for ALL specific view config types we need
+
+    // Note: Swift can often synthesize Codable conformance for enums
+    // with associated values IF all associated values are Codable.
 }
 
 public struct EmbedConfigForEncoding: Encodable {
@@ -29,7 +38,7 @@ public struct EmbedConfigForEncoding: Encodable {
     public let getTokenFromSDK: Bool?
 }
 
-public protocol ViewConfig: Encodable {}
+//public protocol ViewConfig: Encodable {}
 public class BaseEmbedController: NSObject,
     WKScriptMessageHandler,
     ObservableObject,
@@ -38,9 +47,10 @@ public class BaseEmbedController: NSObject,
     
     @Published public var webView: WKWebView!
     public var embedConfig: EmbedConfig
-    public let viewConfig: ViewConfig
+    public let viewConfig: SpecificViewConfig
     public let embedType: String
     internal var onMessageSend: (([String: Any]) -> Void)? = nil
+    public var getAuthTokenCallback: (() -> Future<String, Error>)?
 
     private var cancellables = Set<AnyCancellable>()
     public let shellURL = URL(string: "https://mobile-embed-shell.vercel.app")!
@@ -48,12 +58,14 @@ public class BaseEmbedController: NSObject,
 
     public init(
         embedConfig: EmbedConfig,
-        viewConfig: ViewConfig,
-        embedType: String
+        viewConfig: SpecificViewConfig,
+        embedType: String,
+        getAuthTokenCallback: (() -> Future<String, Error>)? = nil
     ) {
         self.embedConfig = embedConfig
         self.viewConfig  = viewConfig
         self.embedType   = embedType
+        self.getAuthTokenCallback = getAuthTokenCallback
         super.init()
 
         let config = WKWebViewConfiguration()
@@ -122,7 +134,7 @@ public class BaseEmbedController: NSObject,
     }
 
     public func handleRequestAuthToken() {
-        guard let getAuthToken = embedConfig.getAuthToken else { return }
+        guard let getAuthToken = self.getAuthTokenCallback else { return } // <<< CHANGE THIS
         getAuthToken()
           .sink(receiveCompletion: { comp in
             if case .failure(let err) = comp {
@@ -137,25 +149,37 @@ public class BaseEmbedController: NSObject,
 
     // MARK: - Sending Configs
     public func sendEmbedConfigToShell() {
-        guard isShellInitialized else { return }
-        let cfg = EmbedConfigForEncoding(
-            thoughtSpotHost: embedConfig.thoughtSpotHost,
-            authType:      embedConfig.authType,
-            getTokenFromSDK: true
-        )
+        guard isShellInitialized else {
+            print("Warning: Shell not initialized, cannot send EmbedConfig.")
+            return
+        }
+
         do {
-            let data = try JSONEncoder().encode(cfg)
-            if let obj = try JSONSerialization.jsonObject(with: data) as? [String:Any] {
-                let msg: [String:Any] = ["payload": obj, "type":"INIT"]
-                sendJsonMessageToShell(msg)
+            let encoder = JSONEncoder()
+            let embedConfigData = try encoder.encode(embedConfig)
+
+            guard var payloadDict = try JSONSerialization.jsonObject(with: embedConfigData, options: .mutableContainers) as? [String: Any] else {
+                print("Error: Could not convert encoded EmbedConfig to dictionary.")
+                return
             }
-        } catch { print(error) }
+
+            payloadDict["getTokenFromSDK"] = true
+            let msg: [String: Any] = ["payload": payloadDict, "type": "INIT"]
+            sendJsonMessageToShell(msg)
+
+        } catch {
+            print("Error encoding or processing EmbedConfig for sending: \(error)")
+        }
     }
 
-    private func sendViewConfigToShell() {
+    public func sendViewConfigToShell() {
         guard isShellInitialized else { return }
         do {
-            let data = try JSONEncoder().encode(viewConfig)
+            let data: Data
+            switch viewConfig {
+                case .liveboard(let config):
+                    data = try JSONEncoder().encode(config)
+            }
             if let obj = try JSONSerialization.jsonObject(with: data) as? [String:Any] {
                 let msg: [String:Any] = [
                     "embedType": embedType,
