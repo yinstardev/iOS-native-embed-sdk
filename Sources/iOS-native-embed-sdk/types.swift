@@ -2,6 +2,27 @@
 
 import Foundation
 import AnyCodable
+import SwiftUI
+import Combine
+
+/**
+ * ThoughtSpoit EmbedConfig
+ * Authentication related Details to be added in this config
+ * embedConfig: contains basic info - thoughtSpotHost, authType and other details
+ * getAuthToken: When you have selected CookielessAuth you have to provide this - token fetching function.
+ */
+public struct TSEmbedConfig {
+    public let embedConfig: EmbedConfig
+    public let getAuthToken: (() -> Future<String, Error>)?
+
+    public init(
+        embedConfig: EmbedConfig,
+        getAuthToken: (() -> Future<String, Error>)?
+    ) {
+        self.embedConfig = embedConfig
+        self.getAuthToken = getAuthToken
+    }
+}
 
 /**
  * The authentication mechanism for allowing access to the
