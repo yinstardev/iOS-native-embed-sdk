@@ -43,7 +43,7 @@ public class BaseEmbedController: NSObject,
     internal var onMessageSend: (([String: Any]) -> Void)? = nil
 
     private var cancellables = Set<AnyCancellable>()
-    private let shellURL = URL(string: "https://mobile-embed-shell.vercel.app")!
+    public let shellURL = URL(string: "https://mobile-embed-shell.vercel.app")!
     private var isShellInitialized = false
 
     public init(
@@ -121,22 +121,22 @@ public class BaseEmbedController: NSObject,
         sendViewConfigToShell()
     }
 
-    private func handleRequestAuthToken() {
+    public func handleRequestAuthToken() {
         guard let getAuthToken = embedConfig.getAuthToken else { return }
         getAuthToken()
           .sink(receiveCompletion: { comp in
             if case .failure(let err) = comp {
               let msg: [String:Any] = ["type":"AUTH_TOKEN_ERROR", "error": err.localizedDescription]
-              self.sendJsonMessageToShell(message: msg)
+              self.sendJsonMessageToShell(msg)
             }
           }, receiveValue: { token in
-            self.sendJsonMessageToShell(message: ["token": token, "type":"AUTH_TOKEN_RESPONSE"] )
+            self.sendJsonMessageToShell(["token": token, "type":"AUTH_TOKEN_RESPONSE"] )
           })
           .store(in: &cancellables)
     }
 
     // MARK: - Sending Configs
-    private func sendEmbedConfigToShell() {
+    public func sendEmbedConfigToShell() {
         guard isShellInitialized else { return }
         let cfg = EmbedConfigForEncoding(
             thoughtSpotHost: embedConfig.thoughtSpotHost,
@@ -147,7 +147,7 @@ public class BaseEmbedController: NSObject,
             let data = try JSONEncoder().encode(cfg)
             if let obj = try JSONSerialization.jsonObject(with: data) as? [String:Any] {
                 let msg: [String:Any] = ["payload": obj, "type":"INIT"]
-                sendJsonMessageToShell(message: msg)
+                sendJsonMessageToShell(msg)
             }
         } catch { print(error) }
     }
@@ -162,12 +162,12 @@ public class BaseEmbedController: NSObject,
                     "viewConfig": obj,
                     "type":"EMBED"
                 ]
-                sendJsonMessageToShell(message: msg)
+                sendJsonMessageToShell(msg)
             }
         } catch { print(error) }
     }
 
-    private func sendJsonMessageToShell(message: [String:Any]) {
+    @objc func sendJsonMessageToShell(_ message: [String: Any]) {
         onMessageSend?(message)
         do {
             let data = try JSONSerialization.data(withJSONObject: message)
@@ -182,7 +182,7 @@ public class BaseEmbedController: NSObject,
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             let initMsg: [String:Any] = ["type":"INIT_VERCEL_SHELL","status":"ready"]
-            self.sendJsonMessageToShell(message: initMsg)
+            self.sendJsonMessageToShell(initMsg)
         }
     }
 }
