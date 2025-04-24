@@ -5,26 +5,19 @@ import WebKit
 import SwiftUI
 import Combine
 
-//public struct LiveboardViewConfig: ViewConfig {
-//    public let liveboardId: String
-//    
-//    public init(liveboardId: String) {
-//        self.liveboardId = liveboardId
-//    }
-//}
 /// just pass embedConfig, liveboardId, embedType
 public class LiveboardEmbed: ObservableObject {
     private let base: BaseEmbedController
 
     public init(
-        sdkEmbedConfig: SDKEmbedConfig,
+        sdkEmbedConfig: TSEmbedConfig,
         viewConfig: LiveboardViewConfig
     ) {
         self.base = BaseEmbedController(
-            embedConfig: sdkEmbedConfig.staticConfig,
+            embedConfig: sdkEmbedConfig.embedConfig,
             viewConfig:  .liveboard(viewConfig),
             embedType:   "Liveboard",
-            getAuthTokenCallback: sdkEmbedConfig.getAuthTokenCallback
+            getAuthTokenCallback: sdkEmbedConfig.getAuthToken
         )
     }
 

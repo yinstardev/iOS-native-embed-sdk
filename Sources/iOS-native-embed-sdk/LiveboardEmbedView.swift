@@ -8,16 +8,16 @@
 import SwiftUI
 import Combine
 
-public struct SDKEmbedConfig {
-    public let staticConfig: EmbedConfig
-    public let getAuthTokenCallback: (() -> Future<String, Error>)?
+public struct TSEmbedConfig {
+    public let embedConfig: EmbedConfig
+    public let getAuthToken: (() -> Future<String, Error>)?
 
     public init(
-        staticConfig: EmbedConfig,
-        getAuthTokenCallback: (() -> Future<String, Error>)?
+        embedConfig: EmbedConfig,
+        getAuthToken: (() -> Future<String, Error>)?
     ) {
-        self.staticConfig = staticConfig
-        self.getAuthTokenCallback = getAuthTokenCallback
+        self.embedConfig = embedConfig
+        self.getAuthToken = getAuthToken
     }
 }
 
@@ -27,7 +27,7 @@ public struct LiveboardEmbedView: View {
 
     // Accept the wrapper struct
     public init(
-        sdkEmbedConfig: SDKEmbedConfig,
+        sdkEmbedConfig: TSEmbedConfig,
         viewConfig: LiveboardViewConfig
     ) {
         _controller = StateObject(wrappedValue: LiveboardEmbed(

@@ -2,40 +2,10 @@ import Foundation
 import WebKit
 import SwiftUI
 import Combine
-//
-//public enum AuthType: String {
-//    case TrustedAuthTokenCookieless = "AuthServerCookieless"
-//}
-//
-//public struct EmbedConfig {
-//    public let thoughtSpotHost: String
-//    public let authType: String
-//    public let getAuthToken: (() -> Future<String, Error>)?
-//    
-//    public init(
-//        thoughtSpotHost: String,
-//        authType: String,
-//        getAuthToken: (() -> Future<String, Error>)?
-//    ) {
-//        self.thoughtSpotHost = thoughtSpotHost
-//        self.authType = authType
-//        self.getAuthToken = getAuthToken
-//    }
-//}
 
 public enum SpecificViewConfig: Codable {
     case liveboard(LiveboardViewConfig)
-
     // cases for ALL specific view config types we need
-
-    // Note: Swift can often synthesize Codable conformance for enums
-    // with associated values IF all associated values are Codable.
-}
-
-public struct EmbedConfigForEncoding: Encodable {
-    public let thoughtSpotHost: String
-    public let authType: String
-    public let getTokenFromSDK: Bool?
 }
 
 //public protocol ViewConfig: Encodable {}

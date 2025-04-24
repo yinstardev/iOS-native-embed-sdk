@@ -1,50 +1,35 @@
 import XCTest
-import Combine // Ensure Combine is imported for Future
-@testable import iOS_native_embed_sdk // Use your actual module name
+import Combine
+@testable import iOS_native_embed_sdk
 
-// Define a minimal struct conforming to Codable for testing associated values
-// Use this if the real LiveboardViewConfig is complex or not needed for these tests.
-// If SpecificViewConfig requires Codable associated values, this must be Codable.
 struct MockLiveboardViewConfig: Codable {
-    // Add minimal properties if needed by specific tests, otherwise can be empty
-    let mockId: String = "mockLiveboard" // Example property
+    let mockId: String = "mockLiveboard"
 }
-
-// You might need a mock for other view configs if you add more cases
-// struct MockSearchViewConfig: Codable { ... }
 
 final class BaseEmbedControllerTests: XCTestCase {
 
-    // Mock controller to capture messages sent to the shell
     class MockBaseEmbedController: BaseEmbedController {
         var capturedMessage: [String: Any]?
         var onSend: (([String: Any]) -> Void)?
 
-        // Override the method that sends messages to the web view
         override func sendJsonMessageToShell(_ message: [String: Any]) {
             capturedMessage = message
-            onSend?(message) // Call the optional callback for test assertions
+            onSend?(message)
         }
     }
 
-    // Test properties
     var baseEmbedController: MockBaseEmbedController!
-    var mockEmbedConfig: EmbedConfig! // Store mock EmbedConfig
+    var mockEmbedConfig: EmbedConfig!
 
-    // Set up before each test
     override func setUp() {
         super.setUp()
 
-        // 1. Create EmbedConfig (using the generated struct, WITHOUT getAuthToken)
-        //    Make sure AuthType matches the generated type (enum or string)
-        mockEmbedConfig = EmbedConfig(
+        mockEmbedConfig = SDKEmbedConfig(
             thoughtSpotHost: "https://example.com",
-            authType: .TrustedAuthTokenCookieless // Assuming AuthType is an Enum now
-            // Add any other non-optional properties required by EmbedConfig's init
+            authType: AuthType.TrustedAuthTokenCookieless,
+            getAuthTokenCallback
         )
 
-        // 2. Create a SpecificViewConfig case for testing
-        //    Use either the mock or the real generated LiveboardViewConfig
         let specificViewConfig: SpecificViewConfig = .liveboard(MockLiveboardViewConfig())
 
         // 3. Initialize the MockBaseEmbedController with the updated signature
