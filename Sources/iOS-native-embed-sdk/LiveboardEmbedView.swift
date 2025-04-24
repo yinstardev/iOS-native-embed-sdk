@@ -27,11 +27,11 @@ public struct LiveboardEmbedView: View {
 
     // Accept the wrapper struct
     public init(
-        sdkEmbedConfig: TSEmbedConfig,
+        tsEmbedConfig: TSEmbedConfig,
         viewConfig: LiveboardViewConfig
     ) {
         _controller = StateObject(wrappedValue: LiveboardEmbed(
-            sdkEmbedConfig: sdkEmbedConfig,
+            tsEmbedConfig: tsEmbedConfig,
             viewConfig: viewConfig
         ))
     }

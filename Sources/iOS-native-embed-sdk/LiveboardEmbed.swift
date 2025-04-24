@@ -10,14 +10,14 @@ public class LiveboardEmbed: ObservableObject {
     private let base: BaseEmbedController
 
     public init(
-        sdkEmbedConfig: TSEmbedConfig,
+        tsEmbedConfig: TSEmbedConfig,
         viewConfig: LiveboardViewConfig
     ) {
         self.base = BaseEmbedController(
-            embedConfig: sdkEmbedConfig.embedConfig,
+            embedConfig: tsEmbedConfig.embedConfig,
             viewConfig:  .liveboard(viewConfig),
             embedType:   "Liveboard",
-            getAuthTokenCallback: sdkEmbedConfig.getAuthToken
+            getAuthTokenCallback: tsEmbedConfig.getAuthToken
         )
     }
 
